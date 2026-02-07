@@ -6,8 +6,8 @@
 // Get these from: https://app.supabase.com/project/YOUR_PROJECT/settings/api
 
 const SUPABASE_CONFIG = {
-    url: 'YOUR_SUPABASE_URL', // e.g., 'https://xxxxxxxxxxxxx.supabase.co'
-    anonKey: 'YOUR_SUPABASE_ANON_KEY' // Your anon/public key
+    url: 'https://yrhrgeservvztgmroyjp.supabase.co', // e.g., 'https://yrhrgeservvztgmroyjp.supabase.co'
+    anonKey: 'sb_publishable_3njw44SkolW2yJZ2MMO6cQ_2DAzI8JG' // Your anon/public key
 };
 
 // Export for use in other modules
