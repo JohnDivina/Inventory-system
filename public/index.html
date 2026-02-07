@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Karinderya Management System</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="auth-page">
+    <!-- tsParticles Background -->
+    <div id="tsparticles"></div>
+    
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>🍲 TC Eatery</h1>
+                <p>Inventory & Sales Management</p>
+            </div>
+            
+            <div id="errorAlert" class="alert alert-error" style="display: none;" role="alert"></div>
+            
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-control" 
+                        required 
+                        autofocus
+                        autocomplete="username"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-control" 
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block">
+                    Sign In
+                </button>
+            </form>
+            
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="register.html">Create an account</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- tsParticles Library -->
+    <script src="assets/js/tsparticles.min.js"></script>
+    <!-- Configuration and Auth -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/supabase-client.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/utils.js"></script>
+    <!-- Particle Configuration -->
+    <script src="assets/js/particles-config.js"></script>
+    
+    <script>
+        // Check if already logged in
+        (async () => {
+            if (await auth.isLoggedIn()) {
+                window.location.href = 'dashboard.html';
+            }
+        })();
+        
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorAlert = document.getElementById('errorAlert');
+            
+            // Hide previous errors
+            errorAlert.style.display = 'none';
+            
+            // Show loading
+            Loading.show();
+            
+            try {
+                const result = await auth.login(username, password);
+                
+                Loading.hide();
+                
+                if (result.success) {
+                    Toast.success('Login successful!');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 500);
+                } else {
+                    errorAlert.textContent = result.message;
+                    errorAlert.style.display = 'block';
+                }
+            } catch (error) {
+                Loading.hide();
+                console.error('Login error:', error);
+                errorAlert.textContent = 'May error sa pag-login. Subukan ulit.';
+                errorAlert.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

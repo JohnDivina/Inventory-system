@@ -1,12 +1,25 @@
-/**
- * Inventory Page JavaScript
- */
+// ============================================
+// Inventory JavaScript
+// Manage Ulams and Ingredients with Supabase
+// ============================================
 
 let allIngredients = [];
 let selectedIngredients = {};
 
 // Load all data on page load
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
+    // Check authentication
+    if (!await auth.requireLogin()) return;
+
+    // Load user info
+    const user = await auth.getCurrentUser();
+    if (user) {
+        document.getElementById('currentUsername').textContent = user.username;
+        if (user.role === 'admin') {
+            document.getElementById('adminMenu').style.display = 'flex';
+        }
+    }
+
     loadUlams();
     loadIngredients();
 });
@@ -17,17 +30,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
 async function loadUlams() {
     try {
-        const response = await fetch('/Cinventory/api/ulam_operations.php?action=list');
-        const data = await response.json();
+        Loading.show();
 
-        if (data.success) {
-            displayUlams(data.ulams);
-        } else {
-            Toast.error('Hindi ma-load ang mga ulam.');
-        }
+        const { data: ulams, error } = await supabase
+            .from('ulams')
+            .select(`
+                id,
+                name,
+                selling_price,
+                status,
+                ulam_ingredients (
+                    quantity_per_serving,
+                    ingredients (
+                        id,
+                        name,
+                        unit,
+                        stock_quantity
+                    )
+                )
+            `)
+            .order('name');
+
+        if (error) throw error;
+
+        // Calculate available servings for each ulam
+        const ulamsWithServings = await Promise.all(ulams.map(async (ulam) => {
+            const { data: servings } = await supabase.rpc('get_available_servings', {
+                p_ulam_id: ulam.id
+            });
+
+            return {
+                ...ulam,
+                ingredients: ulam.ulam_ingredients.map(ui => ({
+                    ...ui.ingredients,
+                    quantity_per_serving: ui.quantity_per_serving
+                })),
+                available_servings: servings || 0
+            };
+        }));
+
+        displayUlams(ulamsWithServings);
+        Loading.hide();
     } catch (error) {
+        Loading.hide();
         console.error('Error loading ulams:', error);
-        Toast.error('May error sa pag-load ng ulam.');
+        Toast.error('Hindi ma-load ang mga ulam.');
     }
 }
 
@@ -85,32 +132,44 @@ function hideUlamModal() {
 
 async function loadIngredientsForUlam(ulamId = null) {
     try {
-        const response = await fetch('/Cinventory/api/ingredient_operations.php?action=list');
-        const data = await response.json();
+        const { data: ingredients, error } = await supabase
+            .from('ingredients')
+            .select('*')
+            .order('name');
 
-        if (data.success) {
-            allIngredients = data.ingredients;
+        if (error) throw error;
 
-            // If editing, load ulam ingredients
-            if (ulamId) {
-                const ulamResponse = await fetch(`/Cinventory/api/ulam_operations.php?action=get&id=${ulamId}`);
-                const ulamData = await ulamResponse.json();
+        allIngredients = ingredients;
 
-                if (ulamData.success) {
-                    document.getElementById('ulamName').value = ulamData.ulam.name;
-                    document.getElementById('ulamPrice').value = ulamData.ulam.selling_price;
+        // If editing, load ulam ingredients
+        if (ulamId) {
+            const { data: ulam, error: ulamError } = await supabase
+                .from('ulams')
+                .select(`
+                    *,
+                    ulam_ingredients (
+                        ingredient_id,
+                        quantity_per_serving
+                    )
+                `)
+                .eq('id', ulamId)
+                .single();
 
-                    // Set selected ingredients
-                    ulamData.ulam.ingredients.forEach(ing => {
-                        selectedIngredients[ing.ingredient_id] = ing.quantity_per_serving;
-                    });
-                }
-            }
+            if (ulamError) throw ulamError;
 
-            displayIngredientsCheckboxes();
+            document.getElementById('ulamName').value = ulam.name;
+            document.getElementById('ulamPrice').value = ulam.selling_price;
+
+            // Set selected ingredients
+            ulam.ulam_ingredients.forEach(ui => {
+                selectedIngredients[ui.ingredient_id] = ui.quantity_per_serving;
+            });
         }
+
+        displayIngredientsCheckboxes();
     } catch (error) {
         console.error('Error loading ingredients:', error);
+        Toast.error('May error sa pag-load ng sangkap.');
     }
 }
 
@@ -181,28 +240,70 @@ async function saveUlam() {
     }
 
     try {
-        const response = await fetch('/Cinventory/api/ulam_operations.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: ulamId ? 'update' : 'create',
-                ulam_id: ulamId || undefined,
-                name: name,
-                selling_price: parseFloat(sellingPrice),
-                ingredients: ingredients
-            })
-        });
+        Loading.show();
 
-        const data = await response.json();
+        if (ulamId) {
+            // Update ulam
+            const { error: updateError } = await supabase
+                .from('ulams')
+                .update({
+                    name: name,
+                    selling_price: parseFloat(sellingPrice)
+                })
+                .eq('id', ulamId);
 
-        if (data.success) {
-            Toast.success(ulamId ? 'Ulam updated!' : 'Bagong ulam naidagdag!');
-            hideUlamModal();
-            loadUlams();
+            if (updateError) throw updateError;
+
+            // Delete old ingredients
+            const { error: deleteError } = await supabase
+                .from('ulam_ingredients')
+                .delete()
+                .eq('ulam_id', ulamId);
+
+            if (deleteError) throw deleteError;
+
+            // Insert new ingredients
+            const { error: insertError } = await supabase
+                .from('ulam_ingredients')
+                .insert(ingredients.map(ing => ({
+                    ulam_id: parseInt(ulamId),
+                    ...ing
+                })));
+
+            if (insertError) throw insertError;
+
+            Toast.success('Ulam updated!');
         } else {
-            Toast.error(data.message || 'May error sa pag-save.');
+            // Create new ulam
+            const { data: newUlam, error: createError } = await supabase
+                .from('ulams')
+                .insert([{
+                    name: name,
+                    selling_price: parseFloat(sellingPrice)
+                }])
+                .select()
+                .single();
+
+            if (createError) throw createError;
+
+            // Insert ingredients
+            const { error: insertError } = await supabase
+                .from('ulam_ingredients')
+                .insert(ingredients.map(ing => ({
+                    ulam_id: newUlam.id,
+                    ...ing
+                })));
+
+            if (insertError) throw insertError;
+
+            Toast.success('Bagong ulam naidagdag!');
         }
+
+        Loading.hide();
+        hideUlamModal();
+        loadUlams();
     } catch (error) {
+        Loading.hide();
         console.error('Error saving ulam:', error);
         Toast.error('May error sa pag-save.');
     }
@@ -215,29 +316,24 @@ function editUlam(ulamId) {
 function deleteUlam(ulamId, ulamName) {
     ConfirmModal.show(
         `Sigurado ka bang gusto mong tanggalin ang "${ulamName}"?`,
-        'Tanggalin ang Ulam',
         async () => {
             try {
-                const response = await fetch('/Cinventory/api/ulam_operations.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'delete',
-                        ulam_id: ulamId
-                    })
-                });
+                Loading.show();
 
-                const data = await response.json();
+                const { error } = await supabase
+                    .from('ulams')
+                    .delete()
+                    .eq('id', ulamId);
 
-                if (data.success) {
-                    Toast.success('Ulam tinanggal!');
-                    loadUlams();
-                } else {
-                    Toast.error(data.message || 'Hindi matanggal ang ulam.');
-                }
+                if (error) throw error;
+
+                Loading.hide();
+                Toast.success('Ulam tinanggal!');
+                loadUlams();
             } catch (error) {
+                Loading.hide();
                 console.error('Error deleting ulam:', error);
-                Toast.error('May error sa pagtanggal.');
+                Toast.error('Hindi matanggal ang ulam.');
             }
         }
     );
@@ -249,17 +345,21 @@ function deleteUlam(ulamId, ulamName) {
 
 async function loadIngredients() {
     try {
-        const response = await fetch('/Cinventory/api/ingredient_operations.php?action=list');
-        const data = await response.json();
+        Loading.show();
 
-        if (data.success) {
-            displayIngredients(data.ingredients);
-        } else {
-            Toast.error('Hindi ma-load ang mga sangkap.');
-        }
+        const { data: ingredients, error } = await supabase
+            .from('ingredients')
+            .select('*')
+            .order('name');
+
+        if (error) throw error;
+
+        displayIngredients(ingredients);
+        Loading.hide();
     } catch (error) {
+        Loading.hide();
         console.error('Error loading ingredients:', error);
-        Toast.error('May error sa pag-load ng sangkap.');
+        Toast.error('Hindi ma-load ang mga sangkap.');
     }
 }
 
@@ -317,20 +417,22 @@ function hideIngredientModal() {
 
 async function editIngredient(ingredientId) {
     try {
-        const response = await fetch(`/Cinventory/api/ingredient_operations.php?action=get&id=${ingredientId}`);
-        const data = await response.json();
+        const { data: ing, error } = await supabase
+            .from('ingredients')
+            .select('*')
+            .eq('id', ingredientId)
+            .single();
 
-        if (data.success) {
-            const ing = data.ingredient;
-            document.getElementById('ingredientId').value = ing.id;
-            document.getElementById('ingredientName').value = ing.name;
-            document.getElementById('ingredientCategory').value = ing.category;
-            document.getElementById('ingredientUnit').value = ing.unit;
-            document.getElementById('ingredientStock').value = ing.stock_quantity;
-            document.getElementById('ingredientCost').value = ing.cost_per_unit;
+        if (error) throw error;
 
-            showIngredientModal(ingredientId);
-        }
+        document.getElementById('ingredientId').value = ing.id;
+        document.getElementById('ingredientName').value = ing.name;
+        document.getElementById('ingredientCategory').value = ing.category;
+        document.getElementById('ingredientUnit').value = ing.unit;
+        document.getElementById('ingredientStock').value = ing.stock_quantity;
+        document.getElementById('ingredientCost').value = ing.cost_per_unit;
+
+        showIngredientModal(ingredientId);
     } catch (error) {
         console.error('Error loading ingredient:', error);
         Toast.error('May error sa pag-load ng sangkap.');
@@ -351,30 +453,40 @@ async function saveIngredient() {
     }
 
     try {
-        const response = await fetch('/Cinventory/api/ingredient_operations.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: ingredientId ? 'update' : 'create',
-                ingredient_id: ingredientId || undefined,
-                name: name,
-                category: category,
-                unit: unit,
-                stock_quantity: parseFloat(stockQuantity),
-                cost_per_unit: parseFloat(costPerUnit)
-            })
-        });
+        Loading.show();
 
-        const data = await response.json();
+        const ingredientData = {
+            name: name,
+            category: category,
+            unit: unit,
+            stock_quantity: parseFloat(stockQuantity),
+            cost_per_unit: parseFloat(costPerUnit)
+        };
 
-        if (data.success) {
-            Toast.success(ingredientId ? 'Sangkap updated!' : 'Bagong sangkap naidagdag!');
-            hideIngredientModal();
-            loadIngredients();
+        if (ingredientId) {
+            const { error } = await supabase
+                .from('ingredients')
+                .update(ingredientData)
+                .eq('id', ingredientId);
+
+            if (error) throw error;
+
+            Toast.success('Sangkap updated!');
         } else {
-            Toast.error(data.message || 'May error sa pag-save.');
+            const { error } = await supabase
+                .from('ingredients')
+                .insert([ingredientData]);
+
+            if (error) throw error;
+
+            Toast.success('Bagong sangkap naidagdag!');
         }
+
+        Loading.hide();
+        hideIngredientModal();
+        loadIngredients();
     } catch (error) {
+        Loading.hide();
         console.error('Error saving ingredient:', error);
         Toast.error('May error sa pag-save.');
     }
@@ -383,30 +495,31 @@ async function saveIngredient() {
 function deleteIngredient(ingredientId, ingredientName) {
     ConfirmModal.show(
         `Sigurado ka bang gusto mong tanggalin ang "${ingredientName}"?`,
-        'Tanggalin ang Sangkap',
         async () => {
             try {
-                const response = await fetch('/Cinventory/api/ingredient_operations.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'delete',
-                        ingredient_id: ingredientId
-                    })
-                });
+                Loading.show();
 
-                const data = await response.json();
+                const { error } = await supabase
+                    .from('ingredients')
+                    .delete()
+                    .eq('id', ingredientId);
 
-                if (data.success) {
-                    Toast.success('Sangkap tinanggal!');
-                    loadIngredients();
-                } else {
-                    Toast.error(data.message || 'Hindi matanggal ang sangkap.');
-                }
+                if (error) throw error;
+
+                Loading.hide();
+                Toast.success('Sangkap tinanggal!');
+                loadIngredients();
             } catch (error) {
+                Loading.hide();
                 console.error('Error deleting ingredient:', error);
-                Toast.error('May error sa pagtanggal.');
+                Toast.error('Hindi matanggal ang sangkap.');
             }
         }
     );
 }
+
+// Logout handler
+document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await auth.logout();
+});
