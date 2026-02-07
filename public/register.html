@@ -51,13 +51,20 @@
         </div>
     </div>
 
-    <!-- Supabase JS Library -->
+    <!-- Supabase JS Library (must load first) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Configuration and Auth -->
+
+    <!-- Configuration (needed by supabase.js) -->
     <script src="assets/js/config.js"></script>
-    <script src="assets/js/supabase-client.js"></script>
-    <script src="assets/js/auth.js"></script>
+
+    <!-- Initialize Supabase client (uses config) -->
+    <script src="assets/js/supabase.js"></script>
+
+    <!-- Utilities (may be used by auth) -->
     <script src="assets/js/utils.js"></script>
+
+    <!-- Auth module (uses supabase client) -->
+    <script src="assets/js/auth.js"></script>
 
     <script>
         // Check if already logged in
