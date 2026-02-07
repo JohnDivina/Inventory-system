@@ -8,7 +8,7 @@
 
 const SUPABASE_CONFIG = {
     url: 'https://yrhrgeservvztgmroyjp.supabase.co',
-    anonKey: 'REPLACE_WITH_YOUR_ACTUAL_ANON_KEY_FROM_SUPABASE_DASHBOARD' // Must be 200+ char JWT token
+    anonKey: 'sb_publishable_3njw44SkolW2yJZ2MMO6cQ_2DAzI8JG' // Supabase publishable key
 };
 
 // Export for browser use

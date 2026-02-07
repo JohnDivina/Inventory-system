@@ -2,24 +2,21 @@
 // Supabase Client Initialization (Browser / Vercel)
 // ============================================
 
-// ============================================
-// Supabase Client Initialization
-// ============================================
-
 // Validate config exists (loaded from config.js)
 if (!window.SUPABASE_CONFIG || !window.SUPABASE_CONFIG.url || !window.SUPABASE_CONFIG.anonKey) {
     console.error('❌ Supabase config is missing or incomplete');
     throw new Error('Supabase configuration error');
 }
 
-// Access the global supabase object from CDN
-// Assuming the Supabase CDN script has already loaded and exposed `supabase` globally.
-// For example, by including <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> in your HTML.
+// Store reference to Supabase library from CDN before we overwrite window.supabase
 if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient === 'undefined') {
-    console.error('❌ Supabase global object or createClient function not found. Ensure the Supabase CDN script is loaded.');
+    console.error('❌ Supabase library not loaded. Ensure the CDN script is loaded first.');
     throw new Error('Supabase CDN script not loaded');
 }
-const { createClient } = window.supabase;
+
+// Get createClient from the Supabase library
+const supabaseLib = window.supabase;
+const { createClient } = supabaseLib;
 
 // Initialize Supabase client
 const supabaseClient = createClient(
@@ -35,7 +32,6 @@ if (!supabaseClient) {
 
 console.log('✅ Supabase client initialized successfully');
 
-// Export globally for use in other scripts
-if (typeof window !== 'undefined') {
-    window.supabase = supabaseClient;
-}
+// Export client globally (this overwrites the library object, which is fine)
+window.supabase = supabaseClient;
+
