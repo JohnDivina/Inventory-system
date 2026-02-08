@@ -1,8 +1,8 @@
-# Karinderya Inventory & Sales Management System (Supabase Version)
+# Karinderya Inventory & Sales Management System
 
-A modern, cloud-based inventory and sales management system designed for Filipino karinderya businesses. Built with HTML/CSS/JavaScript and Supabase (PostgreSQL), deployable on Vercel.
+A modern, web-based inventory and sales management system designed specifically for Filipino karinderya businesses. Built with PHP and MySQL, this system runs locally on XAMPP.
 
-## 🌟 Features
+## Features
 
 ### 📊 Dashboard
 - Daily, weekly, and monthly sales summaries
@@ -19,254 +19,158 @@ A modern, cloud-based inventory and sales management system designed for Filipin
 
 ### 🛒 Sales Manager
 - Quick sales recording
-- Automatic stock deduction via PostgreSQL stored procedures
+- Automatic stock deduction
 - Daily sales summary
-- Sales history with delete and restore functionality
+- Top and low seller tracking
+- Sales history
 
 ### 👥 Admin Accounts (Admin Only)
 - User management
 - Role-based access control (Admin/Staff)
-- Supabase Auth integration
+- Password reset functionality
 
 ### ⚙️ Settings
 - Change username
 - Change password
-- User profile management
+- System information display
 
-## 🚀 Technology Stack
+## Installation
 
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla ES6+)
-- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
-- **Authentication**: Supabase Auth (JWT-based)
-- **Charts**: Chart.js 4.4.0
-- **Deployment**: Vercel (Static Site)
+### Prerequisites
+- XAMPP (PHP 7.4+ and MySQL)
+- Web browser
 
-## 📋 Prerequisites
+### Setup Instructions
 
-- Supabase account (free tier available)
-- Vercel account (optional, for deployment)
-- Modern web browser
-- Git (for version control)
+1. **Start XAMPP**
+   - Start Apache and MySQL services
 
-## 🛠️ Installation & Setup
-
-### Step 1: Create Supabase Project
-
-1. Go to [https://supabase.com](https://supabase.com) and create a free account
-2. Create a new project
-3. Wait for the project to be provisioned (takes ~2 minutes)
-
-### Step 2: Set Up Database
-
-1. In your Supabase project, go to the SQL Editor
-2. Run the following SQL files in order:
-   - `supabase/schema.sql` - Creates tables, indexes, and stored procedures
-   - `supabase/policies.sql` - Sets up Row Level Security policies
-   - `supabase/seed.sql` - Inserts sample data (optional)
-
-### Step 3: Configure Application
-
-1. Open `public/assets/js/config.js`
-2. Replace the placeholders with your Supabase credentials:
-   ```javascript
-   const SUPABASE_CONFIG = {
-       url: 'YOUR_SUPABASE_URL', // From Project Settings > API
-       anonKey: 'YOUR_SUPABASE_ANON_KEY' // From Project Settings > API
-   };
-   ```
-
-### Step 4: Create Admin User
-
-Since users are managed via Supabase Auth, you need to create the first admin user manually:
-
-1. Go to Supabase Dashboard > Authentication > Users
-2. Click "Add User" and create a user with email: `admin@karinderya.local` and password of your choice
-3. Note the user's UUID
-4. Go to SQL Editor and run:
-   ```sql
-   INSERT INTO users (auth_id, username, role)
-   VALUES ('USER_UUID_HERE', 'admin', 'admin');
-   ```
-
-### Step 5: Run Locally
-
-1. Open `public/index.html` in a web browser
-2. Or use a local server:
+2. **Create Database**
    ```bash
-   # Using Python
-   cd public
-   python -m http.server 8000
-   
-   # Using Node.js
-   npx serve public
+   # Open phpMyAdmin or MySQL command line
+   # Navigate to: http://localhost/phpmyadmin
+   # Import the database schema
    ```
-3. Access at `http://localhost:8000`
+   - Create a new database named `cinventory`
+   - Import `database_schema.sql`
 
-### Step 6: Deploy to Vercel (Optional)
+3. **Configure Database Connection**
+   - Open `config/database.php`
+   - Update credentials if needed (default: root with no password)
 
-1. Install Vercel CLI: `npm install -g vercel`
-2. Run `vercel` in the project root
-3. Follow the prompts
-4. Your app will be deployed!
+4. **Access the System**
+   - Open browser and navigate to: `http://localhost/Cinventory/login.php`
 
-Alternatively, connect your GitHub repository to Vercel for automatic deployments.
+## Default Login Credentials
 
-## 📁 Project Structure
-
-```
-Cinventory-Supabase/
-├── public/
-│   ├── index.html                  # Login page
-│   ├── register.html               # Registration page
-│   ├── dashboard.html              # Dashboard
-│   ├── inventory.html              # Inventory management
-│   ├── sales.html                  # Sales manager
-│   ├── admin-accounts.html         # User management (admin only)
-│   ├── settings.html               # User settings
-│   └── assets/
-│       ├── css/
-│       │   └── style.css           # Main stylesheet
-│       └── js/
-│           ├── config.js           # Supabase configuration
-│           ├── supabase-client.js  # Supabase client init
-│           ├── auth.js             # Authentication utilities
-│           ├── utils.js            # Helper functions
-│           ├── dashboard.js        # Dashboard logic
-│           ├── inventory.js        # Inventory logic
-│           ├── sales.js            # Sales logic
-│           ├── admin-accounts.js   # User management logic
-│           ├── settings.js         # Settings logic
-│           ├── dark-mode.js        # Dark mode toggle
-│           ├── mobile-menu.js      # Mobile navigation
-│           ├── tsparticles.min.js  # Particle effects
-│           └── particles-config.js # Particle configuration
-├── supabase/
-│   ├── schema.sql                  # PostgreSQL schema
-│   ├── policies.sql                # Row Level Security policies
-│   └── seed.sql                    # Sample data
-├── docs/
-│   ├── supabase-setup.md           # Detailed Supabase setup guide
-│   ├── migration-notes.md          # Migration from PHP version
-│   └── api-mapping.md              # API endpoint mappings
-├── vercel.json                     # Vercel configuration
-└── README.md                       # This file
-```
-
-## 🔐 Default Login Credentials
-
-After setting up, create users via the registration page or Supabase Dashboard.
-
-**First Admin User** (create manually as described above):
+**Admin Account:**
 - Username: `admin`
-- Password: (set during creation)
+- Password: `admin123`
 
-## 🗄️ Database Schema
+**Staff Account:**
+- Username: `staff1`
+- Password: `admin123`
+
+## File Structure
+
+```
+Cinventory/
+├── api/                          # Backend API endpoints
+│   ├── dashboard_data.php
+│   ├── ulam_operations.php
+│   ├── ingredient_operations.php
+│   ├── sales_operations.php
+│   └── user_operations.php
+├── assets/
+│   ├── css/
+│   │   └── style.css            # Main stylesheet
+│   └── js/
+│       ├── main.js              # Common utilities
+│       └── inventory.js         # Inventory page scripts
+├── config/
+│   └── database.php             # Database configuration
+├── includes/
+│   ├── auth.php                 # Authentication functions
+│   ├── header.php               # Common header
+│   ├── sidebar.php              # Navigation sidebar
+│   └── footer.php               # Common footer
+├── dashboard.php                # Dashboard page
+├── inventory.php                # Inventory management
+├── sales.php                    # Sales manager
+├── admin_accounts.php           # User management (admin only)
+├── settings.php                 # Settings page
+├── login.php                    # Login page
+├── logout.php                   # Logout handler
+├── database_schema.sql          # Database schema
+└── .htaccess                    # Security configuration
+```
+
+## Database Schema
 
 ### Tables
-- **users** - User accounts linked to Supabase Auth
+- **users** - User accounts and authentication
 - **ulams** - Food items/dishes
 - **ingredients** - Stock inventory
 - **ulam_ingredients** - Recipe relationships
 - **sales** - Sales transactions
 - **settings** - System settings
 
-### Key Features
-- **Automatic Stock Deduction**: PostgreSQL stored procedure `record_sale()`
-- **Stock Restoration**: PostgreSQL stored procedure `delete_sale()`
-- **Available Servings**: PostgreSQL function `get_available_servings()`
-- **Row Level Security**: Fine-grained access control
+## Key Features Explained
 
-## 🔒 Security Features
+### Automatic Stock Deduction
+When a sale is recorded, the system automatically:
+1. Checks if enough ingredients are available
+2. Deducts the required quantity from each ingredient
+3. Records the sale transaction
+4. Updates available servings for all ulam
 
-- JWT-based authentication via Supabase Auth
-- Row Level Security (RLS) policies
-- Role-based access control (Admin/Staff)
-- SQL injection prevention (Supabase handles this)
+### Available Servings Calculation
+The system calculates how many servings of each ulam can be made based on:
+- Current ingredient stock levels
+- Recipe requirements (quantity per serving)
+- Returns the minimum possible servings across all ingredients
+
+### Role-Based Access
+- **Admin**: Full access to all features including user management
+- **Staff**: Access to dashboard, inventory, sales, and settings (no user management)
+
+## Security Features
+
+- Password hashing using PHP's `password_hash()`
+- Session-based authentication
+- CSRF protection
+- SQL injection prevention (PDO prepared statements)
 - XSS protection (input sanitization)
-- Secure password hashing (handled by Supabase Auth)
+- Directory listing disabled
+- Sensitive files protected via .htaccess
 
-## 🌐 Browser Compatibility
+## Browser Compatibility
 
 - Chrome (recommended)
 - Firefox
 - Edge
 - Safari
 
-## 📱 Responsive Design
+## Technology Stack
 
-- Mobile-friendly interface
-- Hamburger menu for mobile navigation
-- Touch-optimized controls
-- Responsive charts and tables
+- **Backend**: PHP 7.4+
+- **Database**: MySQL 5.7+
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Charts**: Chart.js 4.4.0
+- **Server**: Apache (XAMPP)
 
-## 🎨 Features
+## Support
 
-- **Dark Mode**: Toggle between light and dark themes
-- **Animated Background**: tsParticles on login page
-- **Real-time Updates**: Powered by Supabase
-- **Interactive Charts**: Chart.js visualizations
-- **Toast Notifications**: User-friendly feedback
+For issues or questions, please check:
+1. Database connection settings in `config/database.php`
+2. XAMPP services are running
+3. Database schema is properly imported
+4. Browser console for JavaScript errors
 
-## 🆚 Differences from PHP Version
-
-| Feature | PHP Version | Supabase Version |
-|---------|-------------|------------------|
-| Backend | PHP + MySQL | Supabase (PostgreSQL) |
-| Auth | PHP Sessions | Supabase Auth (JWT) |
-| Deployment | XAMPP (Local) | Vercel (Cloud) |
-| Database | MySQL | PostgreSQL |
-| API | Custom PHP endpoints | Supabase Auto-generated API |
-| Real-time | No | Yes (Supabase Realtime) |
-
-## 🐛 Troubleshooting
-
-### Login Issues
-- Ensure Supabase credentials are correct in `config.js`
-- Check browser console for errors
-- Verify user exists in Supabase Auth and `users` table
-
-### Database Errors
-- Ensure all SQL files were run successfully
-- Check RLS policies are enabled
-- Verify foreign key relationships
-
-### Deployment Issues
-- Ensure `vercel.json` is in the project root
-- Check environment variables in Vercel dashboard
-- Verify build logs for errors
-
-## 📚 Documentation
-
-- [Supabase Setup Guide](docs/supabase-setup.md)
-- [Migration Notes](docs/migration-notes.md)
-- [API Mapping](docs/api-mapping.md)
-
-## 📄 License
+## License
 
 This is an MVP (Minimum Viable Product) for educational and small business use.
 
-## 👨‍💻 Author
+## Version
 
-Created by JRDivina
-
-## 🙏 Acknowledgments
-
-- Supabase for the amazing backend platform
-- Chart.js for beautiful charts
-- tsParticles for animated backgrounds
-
-## 📞 Support
-
-For issues or questions:
-1. Check the documentation in the `docs/` folder
-2. Review Supabase project settings
-3. Check browser console for errors
-4. Verify database schema is properly set up
-
-## 🔄 Version
-
-2.0.0 - Supabase Migration (Cloud-Ready)
-
----
-
-**Note**: This is a migration of the original PHP/MySQL version to a modern, cloud-based stack. The core functionality remains the same, but with improved scalability, security, and deployment options.
+1.0.0 MVP - Initial Release
